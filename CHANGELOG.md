@@ -23,3 +23,8 @@
 
 ### 🎨 2026-05-02 Additional Updates
 - **Canvas Shadow Refinement**: Changed the canvas shadow from a directional drop-shadow to a soft, centered, multi-directional glow (`boxShadow: '0 0 40px rgba(0, 0, 0, 0.15)'`) to make it look naturally elevated.
+
+### 📱 Mobile Responsiveness Updates
+- **Responsive Header Layout**: Adjusted app title and buttons in the header to be responsive; hides text labels and shows icons only on smaller screens.
+- **Toggleable Side Panel**: Modified the right panel (Palette & Layers) to act as a slide-over overlay on mobile devices, triggered by a newly added menu (≡) toggle button.
+- **Dynamic Sizing**: Optimized main app container to `100dvh` and tightened margins to prevent overflow and ensure comfortable usage on mobile environments.

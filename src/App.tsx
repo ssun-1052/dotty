@@ -9,7 +9,7 @@ import './index.css';
 
 // ─── Header ───────────────────────────────────────────────────────────────────
 
-function Header({ onExport }: { onExport: () => void }) {
+function Header({ onExport, onToggleRightPanel }: { onExport: () => void; onToggleRightPanel: () => void }) {
   const { state, dispatch } = useStudio();
   const { canvasSize, layers } = state;
 
@@ -33,7 +33,7 @@ function Header({ onExport }: { onExport: () => void }) {
     <header className="h-11 bg-white border-b border-gray-200 flex items-center justify-between px-4 select-none z-10 shrink-0">
       {/* Logo */}
       <div className="flex items-center gap-2">
-        <div className="w-6 h-6 bg-blue-500 rounded flex items-center justify-center">
+        <div className="w-6 h-6 bg-blue-500 rounded flex items-center justify-center shrink-0">
           <svg viewBox="0 0 12 12" className="w-3.5 h-3.5">
             <rect x="0" y="0" width="5" height="5" fill="white" />
             <rect x="7" y="0" width="5" height="5" fill="white" opacity="0.6" />
@@ -41,7 +41,7 @@ function Header({ onExport }: { onExport: () => void }) {
             <rect x="7" y="7" width="5" height="5" fill="white" />
           </svg>
         </div>
-        <span className="font-semibold text-gray-800 text-sm tracking-tight">
+        <span className="font-semibold text-gray-800 text-sm tracking-tight hidden md:inline">
           Layered Pixel Studio
         </span>
       </div>
@@ -76,15 +76,16 @@ function Header({ onExport }: { onExport: () => void }) {
             >
               Apply
             </button>
-            <button
-              onClick={() => {
-                setSizeInput({ w: String(canvasSize.width), h: String(canvasSize.height) });
-                setShowSizeEdit(false);
-              }}
-              className="text-xs text-gray-500 px-1 py-1 hover:text-gray-700"
-            >
-              ✕
-            </button>
+              <button
+                onClick={() => {
+                  setSizeInput({ w: String(canvasSize.width), h: String(canvasSize.height) });
+                  setShowSizeEdit(false);
+                }}
+                className="text-xs text-gray-500 px-1 py-1 hover:text-gray-700"
+              >
+                ✕
+              </button>
+            </div>
           </div>
         ) : (
           <button
@@ -98,28 +99,39 @@ function Header({ onExport }: { onExport: () => void }) {
       </div>
 
       {/* Export buttons */}
-      <div className="flex items-center gap-2">
-        {/* Quick PNG save — auto-scales to ≥512 px, white background */}
+      <div className="flex items-center gap-1 md:gap-2">
+        {/* Quick PNG save */}
         <button
           onClick={() => exportToPNG(layers, canvasSize, false)}
-          title="Save PNG (auto-scale to 512px+, white background)"
-          className="flex items-center gap-1.5 border border-gray-200 hover:border-blue-300 text-gray-600 hover:text-blue-600 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+          title="Save PNG"
+          className="flex items-center gap-1.5 border border-gray-200 hover:border-blue-300 text-gray-600 hover:text-blue-600 text-xs font-semibold px-2 md:px-3 py-1.5 rounded-lg transition-colors shrink-0"
         >
-          <svg viewBox="0 0 16 16" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <svg viewBox="0 0 16 16" className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8">
             <path d="M8 2v8M5 7l3 3 3-3" /><path d="M2 12h12" />
           </svg>
-          Save PNG
+          <span className="hidden md:inline">Save PNG</span>
         </button>
 
-        {/* Full export modal (SVG + PNG, shared settings) */}
+        {/* Full export modal */}
         <button
           onClick={onExport}
-          className="flex items-center gap-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors shadow-sm"
+          title="Export Options"
+          className="flex items-center gap-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold px-2 md:px-3 py-1.5 rounded-lg transition-colors shadow-sm shrink-0"
         >
-          <svg viewBox="0 0 16 16" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <svg viewBox="0 0 16 16" className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8">
             <path d="M8 2v8M5 7l3 3 3-3" /><path d="M2 12h12" />
           </svg>
-          Export…
+          <span className="hidden md:inline">Export…</span>
+        </button>
+
+        {/* Right Panel Toggle (Mobile) */}
+        <button
+          onClick={onToggleRightPanel}
+          className="md:hidden flex items-center justify-center w-8 h-8 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg ml-1 shrink-0 transition-colors"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="w-4 h-4">
+            <path d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
         </button>
       </div>
     </header>
@@ -130,12 +142,16 @@ function Header({ onExport }: { onExport: () => void }) {
 
 function StudioApp() {
   const [showExport, setShowExport] = useState(false);
+  const [isRightPanelOpen, setIsRightPanelOpen] = useState(false);
 
   return (
-    <div className="flex flex-col h-screen bg-gray-100 overflow-hidden">
-      <Header onExport={() => setShowExport(true)} />
+    <div className="flex flex-col h-[100dvh] bg-gray-100 overflow-hidden relative">
+      <Header 
+        onExport={() => setShowExport(true)} 
+        onToggleRightPanel={() => setIsRightPanelOpen(true)} 
+      />
 
-      <div className="flex flex-1 min-h-0">
+      <div className="flex flex-1 min-h-0 relative">
         {/* Left: Toolbar */}
         <Toolbar />
 
@@ -144,9 +160,34 @@ function StudioApp() {
           <Canvas />
         </div>
 
+        {/* Right Panel Backdrop (Mobile Only) */}
+        {isRightPanelOpen && (
+          <div 
+            className="md:hidden absolute inset-0 bg-black/30 z-40 transition-opacity" 
+            onClick={() => setIsRightPanelOpen(false)}
+          />
+        )}
+
         {/* Right: Color + Layers */}
-        <div className="w-64 flex flex-col border-l border-gray-200 bg-white overflow-hidden">
-          <div className="overflow-y-auto shrink-0 max-h-[420px]">
+        <div 
+          className={`
+            absolute md:static right-0 top-0 bottom-0 w-64 bg-white border-l border-gray-200 
+            flex flex-col z-50 transform transition-transform duration-300 ease-in-out
+            ${isRightPanelOpen ? 'translate-x-0' : 'translate-x-full md:translate-x-0'}
+          `}
+        >
+          {/* Mobile close button */}
+          <div className="md:hidden flex items-center justify-between p-3 border-b border-gray-200 shrink-0">
+            <span className="font-semibold text-sm text-gray-700">Palette & Layers</span>
+            <button 
+              onClick={() => setIsRightPanelOpen(false)} 
+              className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div className="overflow-y-auto shrink-0 max-h-[420px] md:max-h-[50%]">
             <ColorPicker />
           </div>
           <div className="flex-1 min-h-0 overflow-hidden">
