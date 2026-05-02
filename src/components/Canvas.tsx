@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useCallback, useState } from 'react';
-import { useStudio, floodFill } from '../contexts/StudioContext';
+import { useStudio, floodFill, Tool } from '../contexts/StudioContext';
 
 export default function Canvas() {
   const { state, dispatch, getCompositePixel } = useStudio();
