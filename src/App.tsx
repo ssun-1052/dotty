@@ -86,7 +86,6 @@ function Header({ onExport, onToggleRightPanel }: { onExport: () => void; onTogg
                 ✕
               </button>
             </div>
-          </div>
         ) : (
           <button
             onClick={() => setShowSizeEdit(true)}
