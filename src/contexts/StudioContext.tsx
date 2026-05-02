@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useReducer, useCallback } from 'react';
 
-export type Tool = 'pen' | 'eraser' | 'bucket' | 'eyedropper';
+export type Tool = 'pen' | 'eraser' | 'bucket' | 'eyedropper' | 'hand';
 
 export interface Layer {
   id: string;
@@ -48,7 +48,8 @@ export type StudioAction =
   | { type: 'SET_PIXELS'; layerId: string; pixels: Record<string, string | null> }
   | { type: 'PUSH_HISTORY'; layers: Layer[] }
   | { type: 'UNDO' }
-  | { type: 'REDO' };
+  | { type: 'REDO' }
+  | { type: 'CLEAR_CANVAS' };
 
 let layerCounter = 2;
 
@@ -196,6 +197,14 @@ function studioReducer(state: StudioState, action: StudioAction): StudioState {
       return {
         ...state,
         past: [...state.past.slice(-49), { layers: action.layers }],
+        future: [],
+      };
+
+    case 'CLEAR_CANVAS':
+      return {
+        ...state,
+        layers: state.layers.map((l) => ({ ...l, pixels: {} })),
+        past: [...state.past.slice(-49), { layers: state.layers }],
         future: [],
       };
 

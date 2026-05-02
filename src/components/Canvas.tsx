@@ -6,10 +6,23 @@ export default function Canvas() {
   const { layers, activeLayerId, tool, color, canvasSize, zoom, showGrid } = state;
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const isDrawing = useRef(false);
   const lastPixel = useRef<{ x: number; y: number } | null>(null);
   const preDrawLayers = useRef(layers);
   const [hoverPixel, setHoverPixel] = useState<{ x: number; y: number } | null>(null);
+
+  const [isPanning, setIsPanning] = useState(false);
+  const panStart = useRef<{ x: number; y: number; scrollLeft: number; scrollTop: number } | null>(null);
+
+  // Initialize scroll position to center the 10000x10000 canvas area
+  useEffect(() => {
+    if (containerRef.current) {
+      const el = containerRef.current;
+      el.scrollLeft = (10000 - el.clientWidth) / 2;
+      el.scrollTop = (10000 - el.clientHeight) / 2;
+    }
+  }, []);
 
   // ─── Render ──────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -83,6 +96,24 @@ export default function Canvas() {
     }
   }, [layers, canvasSize, zoom, showGrid, hoverPixel, tool, color]);
 
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      // Prevent default scrolling behavior
+      e.preventDefault();
+      if (e.deltaY < 0) {
+        dispatch({ type: 'SET_ZOOM', zoom: zoom + 2 });
+      } else if (e.deltaY > 0) {
+        dispatch({ type: 'SET_ZOOM', zoom: Math.max(2, zoom - 2) });
+      }
+    };
+
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    return () => container.removeEventListener('wheel', handleWheel);
+  }, [dispatch, zoom]);
+
   // ─── Interaction ─────────────────────────────────────────────────────────────
   const getPixel = useCallback(
     (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -117,6 +148,7 @@ export default function Canvas() {
   const handleMouseDown = useCallback(
     (e: React.MouseEvent<HTMLCanvasElement>) => {
       if (e.button !== 0) return;
+      if (tool === 'hand') return; // Handled by container
       const pixel = getPixel(e);
       if (!pixel) return;
       const { x, y } = pixel;
@@ -189,6 +221,7 @@ export default function Canvas() {
   }, [finishDraw]);
 
   const getCursor = () => {
+    if (tool === 'hand') return isPanning ? 'grabbing' : 'grab';
     switch (tool) {
       case 'pen': return 'crosshair';
       case 'eraser': return 'cell';
@@ -199,20 +232,59 @@ export default function Canvas() {
   };
 
   return (
-    <div className="flex items-center justify-center w-full h-full overflow-auto bg-[#e8e8e8]">
-      <div
-        style={{ lineHeight: 0 }}
-        className="shadow-2xl rounded-sm border border-gray-300"
-      >
-        <canvas
-          ref={canvasRef}
-          style={{ cursor: getCursor(), display: 'block' }}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={finishDraw}
-          onMouseLeave={handleMouseLeave}
-          onContextMenu={(e) => e.preventDefault()}
-        />
+    <div 
+      ref={containerRef}
+      className="w-full h-full overflow-auto bg-[#e8e8e8]"
+      style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      onMouseDown={(e) => {
+        if (tool === 'hand' && e.button === 0) {
+          setIsPanning(true);
+          panStart.current = {
+            x: e.clientX,
+            y: e.clientY,
+            scrollLeft: e.currentTarget.scrollLeft,
+            scrollTop: e.currentTarget.scrollTop,
+          };
+        }
+      }}
+      onMouseMove={(e) => {
+        if (isPanning && panStart.current) {
+          const dx = e.clientX - panStart.current.x;
+          const dy = e.clientY - panStart.current.y;
+          e.currentTarget.scrollLeft = panStart.current.scrollLeft - dx;
+          e.currentTarget.scrollTop = panStart.current.scrollTop - dy;
+        }
+      }}
+      onMouseUp={() => {
+        setIsPanning(false);
+        panStart.current = null;
+      }}
+      onMouseLeave={() => {
+        setIsPanning(false);
+        panStart.current = null;
+      }}
+    >
+      <div style={{ width: '10000px', height: '10000px', position: 'relative' }}>
+        <div
+          style={{ 
+            position: 'absolute', 
+            left: '50%', 
+            top: '50%', 
+            transform: 'translate(-50%, -50%)',
+            lineHeight: 0 
+          }}
+          className="shadow-2xl rounded-sm border border-gray-300"
+        >
+          <canvas
+            ref={canvasRef}
+            style={{ cursor: getCursor(), display: 'block' }}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={finishDraw}
+            onMouseLeave={handleMouseLeave}
+            onContextMenu={(e) => e.preventDefault()}
+          />
+        </div>
       </div>
     </div>
   );
