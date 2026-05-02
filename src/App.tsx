@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StudioProvider, useStudio } from './contexts/StudioContext';
+import { StudioProvider, useStudio, exportToPNG } from './contexts/StudioContext';
 import Canvas from './components/Canvas';
 import Toolbar from './components/Toolbar';
 import LayerPanel from './components/LayerPanel';
@@ -11,7 +11,7 @@ import './index.css';
 
 function Header({ onExport }: { onExport: () => void }) {
   const { state, dispatch } = useStudio();
-  const { canvasSize } = state;
+  const { canvasSize, layers } = state;
 
   const [sizeInput, setSizeInput] = useState({
     w: String(canvasSize.width),
@@ -97,17 +97,31 @@ function Header({ onExport }: { onExport: () => void }) {
         )}
       </div>
 
-      {/* Export */}
-      <button
-        onClick={onExport}
-        className="flex items-center gap-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors shadow-sm"
-      >
-        <svg viewBox="0 0 16 16" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="1.8">
-          <path d="M8 2v8M5 7l3 3 3-3" />
-          <path d="M2 12h12" />
-        </svg>
-        Export SVG
-      </button>
+      {/* Export buttons */}
+      <div className="flex items-center gap-2">
+        {/* Quick PNG save — auto-scales to ≥512 px, white background */}
+        <button
+          onClick={() => exportToPNG(layers, canvasSize, false)}
+          title="Save PNG (auto-scale to 512px+, white background)"
+          className="flex items-center gap-1.5 border border-gray-200 hover:border-blue-300 text-gray-600 hover:text-blue-600 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+        >
+          <svg viewBox="0 0 16 16" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="1.8">
+            <path d="M8 2v8M5 7l3 3 3-3" /><path d="M2 12h12" />
+          </svg>
+          Save PNG
+        </button>
+
+        {/* Full export modal (SVG + PNG, shared settings) */}
+        <button
+          onClick={onExport}
+          className="flex items-center gap-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors shadow-sm"
+        >
+          <svg viewBox="0 0 16 16" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="1.8">
+            <path d="M8 2v8M5 7l3 3 3-3" /><path d="M2 12h12" />
+          </svg>
+          Export…
+        </button>
+      </div>
     </header>
   );
 }

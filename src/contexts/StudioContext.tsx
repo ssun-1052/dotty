@@ -410,3 +410,60 @@ export function exportToSVG(
   svg += `</svg>`;
   return svg;
 }
+
+/**
+ * Export all visible layers composited together as a PNG file.
+ * Each logical pixel is rendered as a solid (scale × scale) rectangle —
+ * no interpolation, no anti-aliasing — preserving the crisp pixel look.
+ *
+ * @param scale  Pixels per logical dot. Auto-default targets ≥ 512 px output.
+ */
+export function exportToPNG(
+  layers: Layer[],
+  canvasSize: CanvasSize,
+  transparentBg: boolean,
+  scale?: number
+): void {
+  const { width, height } = canvasSize;
+
+  // Auto-scale: make the shortest side at least 512 px
+  const autoScale = scale ?? Math.max(1, Math.ceil(512 / Math.min(width, height)));
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width * autoScale;
+  canvas.height = height * autoScale;
+
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  // Disable any browser smoothing (safety net — we draw rects, not images)
+  ctx.imageSmoothingEnabled = false;
+
+  if (!transparentBg) {
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+
+  // Composite layers bottom → top, each pixel as a scaled rectangle
+  for (const layer of layers) {
+    if (!layer.visible) continue;
+    ctx.globalAlpha = layer.opacity / 100;
+    for (const [key, color] of Object.entries(layer.pixels)) {
+      const [x, y] = key.split(',').map(Number);
+      if (x < 0 || x >= width || y < 0 || y >= height) continue;
+      ctx.fillStyle = color;
+      ctx.fillRect(x * autoScale, y * autoScale, autoScale, autoScale);
+    }
+  }
+  ctx.globalAlpha = 1;
+
+  canvas.toBlob((blob) => {
+    if (!blob) return;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'pixel-art.png';
+    a.click();
+    URL.revokeObjectURL(url);
+  }, 'image/png');
+}

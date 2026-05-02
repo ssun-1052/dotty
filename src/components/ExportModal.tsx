@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { useStudio, exportToSVG } from '../contexts/StudioContext';
+import { useStudio, exportToSVG, exportToPNG } from '../contexts/StudioContext';
 
 interface Props {
   onClose: () => void;
 }
 
-const SCALE_OPTIONS = [1, 2, 4, 8, 16];
+const SCALE_OPTIONS = [1, 2, 4, 8, 16, 32];
 
 export default function ExportModal({ onClose }: Props) {
   const { state } = useStudio();
@@ -14,7 +14,7 @@ export default function ExportModal({ onClose }: Props) {
   const [transparentBg, setTransparentBg] = useState(false);
   const [scale, setScale] = useState(8);
 
-  const handleExport = () => {
+  const handleExportSVG = () => {
     const svg = exportToSVG(layers, canvasSize, transparentBg, scale);
     const blob = new Blob([svg], { type: 'image/svg+xml' });
     const url = URL.createObjectURL(blob);
@@ -23,6 +23,11 @@ export default function ExportModal({ onClose }: Props) {
     a.download = 'pixel-art.svg';
     a.click();
     URL.revokeObjectURL(url);
+    onClose();
+  };
+
+  const handleExportPNG = () => {
+    exportToPNG(layers, canvasSize, transparentBg, scale);
     onClose();
   };
 
@@ -39,7 +44,7 @@ export default function ExportModal({ onClose }: Props) {
       <div className="bg-white rounded-xl shadow-2xl w-[460px] max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-          <h2 className="text-base font-semibold text-gray-800">Export as SVG</h2>
+          <h2 className="text-base font-semibold text-gray-800">Export</h2>
           <button
             onClick={onClose}
             className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors text-lg leading-none"
@@ -125,8 +130,9 @@ export default function ExportModal({ onClose }: Props) {
           </div>
 
           {/* Output info */}
-          <div className="bg-gray-50 rounded-lg px-4 py-3 text-xs text-gray-500 font-mono">
-            Output: {exportW} × {exportH} px · {width * height} logical pixels
+          <div className="bg-gray-50 rounded-lg px-4 py-3 text-xs text-gray-500 font-mono space-y-0.5">
+            <div>SVG: vector (infinite resolution)</div>
+            <div>PNG: {exportW} × {exportH} px · {scale}px per dot</div>
           </div>
         </div>
 
@@ -134,15 +140,27 @@ export default function ExportModal({ onClose }: Props) {
         <div className="flex gap-2 px-5 py-4 border-t border-gray-100">
           <button
             onClick={onClose}
-            className="flex-1 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+            className="py-2 px-4 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors shrink-0"
           >
             Cancel
           </button>
           <button
-            onClick={handleExport}
-            className="flex-1 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-sm font-semibold transition-colors shadow-sm"
+            onClick={handleExportSVG}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-blue-200 text-blue-600 hover:bg-blue-50 text-sm font-semibold transition-colors"
           >
-            Download SVG
+            <svg viewBox="0 0 16 16" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <path d="M8 2v8M5 7l3 3 3-3" /><path d="M2 12h12" />
+            </svg>
+            SVG
+          </button>
+          <button
+            onClick={handleExportPNG}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-sm font-semibold transition-colors shadow-sm"
+          >
+            <svg viewBox="0 0 16 16" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <path d="M8 2v8M5 7l3 3 3-3" /><path d="M2 12h12" />
+            </svg>
+            PNG
           </button>
         </div>
       </div>
