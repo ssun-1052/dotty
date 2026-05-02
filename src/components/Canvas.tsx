@@ -271,9 +271,10 @@ export default function Canvas() {
             left: '50%', 
             top: '50%', 
             transform: 'translate(-50%, -50%)',
-            lineHeight: 0 
+            lineHeight: 0,
+            boxShadow: '0 0 40px rgba(0, 0, 0, 0.15)'
           }}
-          className="shadow-2xl rounded-sm border border-gray-300"
+          className="rounded-sm border border-gray-300"
         >
           <canvas
             ref={canvasRef}

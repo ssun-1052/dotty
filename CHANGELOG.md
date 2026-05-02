@@ -20,3 +20,6 @@
   - Implemented an expansive 10,000px × 10,000px scrollable grey area, automatically centered upon load.
   - Hid native browser scrollbars for an immersive, Figma-like infinite canvas feel.
   - **Spacebar Shortcut**: Pressing and holding the Spacebar temporarily switches to the Hand tool for quick panning. Releasing the Spacebar seamlessly reverts to the previously selected tool.
+
+### 🎨 2026-05-02 Additional Updates
+- **Canvas Shadow Refinement**: Changed the canvas shadow from a directional drop-shadow to a soft, centered, multi-directional glow (`boxShadow: '0 0 40px rgba(0, 0, 0, 0.15)'`) to make it look naturally elevated.
