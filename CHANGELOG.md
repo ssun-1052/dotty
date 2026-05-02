@@ -26,5 +26,9 @@
 
 ### 📱 Mobile Responsiveness Updates
 - **Responsive Header Layout**: Adjusted app title and buttons in the header to be responsive; hides text labels and shows icons only on smaller screens.
-- **Toggleable Side Panel**: Modified the right panel (Palette & Layers) to act as a slide-over overlay on mobile devices, triggered by a newly added menu (≡) toggle button.
+- **Toggleable Side Panel**: Modified the right panel (Palette & Layers) to act as a slide-over overlay on mobile devices. Tapping the menu (≡) button now correctly toggles the panel open and closed.
 - **Dynamic Sizing**: Optimized main app container to `100dvh` and tightened margins to prevent overflow and ensure comfortable usage on mobile environments.
+- **Mobile Touch Gestures**:
+  - **Pinch-to-Zoom**: Enabled two-finger pinch gestures to zoom in and out of the canvas natively on mobile.
+  - **Two-Finger Panning**: Canvas movement is now strictly restricted to two fingers, allowing seamless navigation without accidentally drawing.
+  - **One-Finger Drawing**: Touching the canvas with a single finger is now dedicated exclusively to drawing or using the active tool, providing a natural mobile creative experience.

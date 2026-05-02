@@ -147,7 +147,7 @@ function StudioApp() {
     <div className="flex flex-col h-[100dvh] bg-gray-100 overflow-hidden relative">
       <Header 
         onExport={() => setShowExport(true)} 
-        onToggleRightPanel={() => setIsRightPanelOpen(true)} 
+        onToggleRightPanel={() => setIsRightPanelOpen(prev => !prev)} 
       />
 
       <div className="flex flex-1 min-h-0 relative">

@@ -14,6 +14,11 @@ export default function Canvas() {
 
   const [isPanning, setIsPanning] = useState(false);
   const panStart = useRef<{ x: number; y: number; scrollLeft: number; scrollTop: number } | null>(null);
+  const touchState = useRef({
+    initialPinchDist: 0,
+    initialZoom: 0,
+    lastPanMidpoint: { x: 0, y: 0 }
+  });
 
   // Initialize scroll position to center the 10000x10000 canvas area
   useEffect(() => {
@@ -116,14 +121,14 @@ export default function Canvas() {
 
   // ─── Interaction ─────────────────────────────────────────────────────────────
   const getPixel = useCallback(
-    (e: React.MouseEvent<HTMLCanvasElement>) => {
+    (clientX: number, clientY: number) => {
       const canvas = canvasRef.current;
       if (!canvas) return null;
       const rect = canvas.getBoundingClientRect();
       const scaleX = canvas.width / rect.width;
       const scaleY = canvas.height / rect.height;
-      const cx = (e.clientX - rect.left) * scaleX;
-      const cy = (e.clientY - rect.top) * scaleY;
+      const cx = (clientX - rect.left) * scaleX;
+      const cy = (clientY - rect.top) * scaleY;
       return {
         x: Math.floor(cx / zoom),
         y: Math.floor(cy / zoom),
@@ -133,23 +138,25 @@ export default function Canvas() {
   );
 
   const applyPixel = useCallback(
-    (x: number, y: number) => {
+    (x: number, y: number, overrideTool?: Tool) => {
+      const currentTool = overrideTool || tool;
       const { width, height } = canvasSize;
       if (x < 0 || x >= width || y < 0 || y >= height) return;
       dispatch({
         type: 'SET_PIXELS',
         layerId: activeLayerId,
-        pixels: { [`${x},${y}`]: tool === 'eraser' ? null : color },
+        pixels: { [`${x},${y}`]: currentTool === 'eraser' ? null : color },
       });
     },
     [tool, color, activeLayerId, canvasSize, dispatch]
   );
 
-  const handleMouseDown = useCallback(
-    (e: React.MouseEvent<HTMLCanvasElement>) => {
-      if (e.button !== 0) return;
-      if (tool === 'hand') return; // Handled by container
-      const pixel = getPixel(e);
+  const handlePointerDown = useCallback(
+    (clientX: number, clientY: number, isTouch: boolean) => {
+      const currentTool = (isTouch && tool === 'hand') ? 'pen' : tool;
+      if (!isTouch && currentTool === 'hand') return; // Mouse hand tool handled by container
+
+      const pixel = getPixel(clientX, clientY);
       if (!pixel) return;
       const { x, y } = pixel;
       const { width, height } = canvasSize;
@@ -157,7 +164,7 @@ export default function Canvas() {
 
       preDrawLayers.current = layers;
 
-      if (tool === 'bucket') {
+      if (currentTool === 'bucket') {
         const activeLayer = layers.find((l) => l.id === activeLayerId);
         if (!activeLayer) return;
         dispatch({ type: 'PUSH_HISTORY', layers });
@@ -166,7 +173,7 @@ export default function Canvas() {
         return;
       }
 
-      if (tool === 'eyedropper') {
+      if (currentTool === 'eyedropper') {
         const picked = getCompositePixel(x, y);
         if (picked) {
           dispatch({ type: 'SET_COLOR', color: picked });
@@ -177,15 +184,16 @@ export default function Canvas() {
 
       isDrawing.current = true;
       lastPixel.current = { x, y };
-      applyPixel(x, y);
+      applyPixel(x, y, currentTool);
     },
     [getPixel, layers, activeLayerId, tool, color, canvasSize, dispatch, applyPixel, getCompositePixel]
   );
 
-  const handleMouseMove = useCallback(
-    (e: React.MouseEvent<HTMLCanvasElement>) => {
-      const pixel = getPixel(e);
-      if (pixel) setHoverPixel(pixel);
+  const handlePointerMove = useCallback(
+    (clientX: number, clientY: number, isTouch: boolean) => {
+      const currentTool = (isTouch && tool === 'hand') ? 'pen' : tool;
+      const pixel = getPixel(clientX, clientY);
+      if (pixel && !isTouch) setHoverPixel(pixel);
 
       if (!isDrawing.current || !pixel) return;
       const { x, y } = pixel;
@@ -199,12 +207,27 @@ export default function Canvas() {
         for (let i = 1; i <= steps; i++) {
           const ix = Math.round(lx + (dx * i) / steps);
           const iy = Math.round(ly + (dy * i) / steps);
-          applyPixel(ix, iy);
+          applyPixel(ix, iy, currentTool);
         }
       }
       lastPixel.current = { x, y };
     },
-    [getPixel, applyPixel]
+    [getPixel, applyPixel, tool]
+  );
+
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent<HTMLCanvasElement>) => {
+      if (e.button !== 0) return;
+      handlePointerDown(e.clientX, e.clientY, false);
+    },
+    [handlePointerDown]
+  );
+
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent<HTMLCanvasElement>) => {
+      handlePointerMove(e.clientX, e.clientY, false);
+    },
+    [handlePointerMove]
   );
 
   const finishDraw = useCallback(() => {
@@ -235,7 +258,7 @@ export default function Canvas() {
     <div 
       ref={containerRef}
       className="w-full h-full overflow-auto bg-[#e8e8e8]"
-      style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', touchAction: 'none' }}
       onMouseDown={(e) => {
         if (tool === 'hand' && e.button === 0) {
           setIsPanning(true);
@@ -262,6 +285,64 @@ export default function Canvas() {
       onMouseLeave={() => {
         setIsPanning(false);
         panStart.current = null;
+      }}
+      onTouchStart={(e) => {
+        if (e.touches.length === 2) {
+          if (isDrawing.current) finishDraw();
+          const t1 = e.touches[0];
+          const t2 = e.touches[1];
+          touchState.current.initialPinchDist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+          touchState.current.initialZoom = zoom;
+          touchState.current.lastPanMidpoint = {
+            x: (t1.clientX + t2.clientX) / 2,
+            y: (t1.clientY + t2.clientY) / 2,
+          };
+        } else if (e.touches.length === 1) {
+          if (e.target === canvasRef.current) {
+            handlePointerDown(e.touches[0].clientX, e.touches[0].clientY, true);
+          }
+        }
+      }}
+      onTouchMove={(e) => {
+        if (e.touches.length === 2) {
+          const t1 = e.touches[0];
+          const t2 = e.touches[1];
+          const dist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+          const midX = (t1.clientX + t2.clientX) / 2;
+          const midY = (t1.clientY + t2.clientY) / 2;
+
+          // Panning
+          const dx = midX - touchState.current.lastPanMidpoint.x;
+          const dy = midY - touchState.current.lastPanMidpoint.y;
+          if (containerRef.current) {
+            containerRef.current.scrollLeft -= dx;
+            containerRef.current.scrollTop -= dy;
+          }
+          touchState.current.lastPanMidpoint = { x: midX, y: midY };
+
+          // Zooming
+          if (touchState.current.initialPinchDist > 0) {
+            const scale = dist / touchState.current.initialPinchDist;
+            const newZoom = Math.max(2, Math.round(touchState.current.initialZoom * scale));
+            if (newZoom !== zoom) {
+              dispatch({ type: 'SET_ZOOM', zoom: newZoom });
+            }
+          }
+        } else if (e.touches.length === 1) {
+          if (isDrawing.current) {
+            handlePointerMove(e.touches[0].clientX, e.touches[0].clientY, true);
+          }
+        }
+      }}
+      onTouchEnd={(e) => {
+        if (e.touches.length === 0 && isDrawing.current) {
+          finishDraw();
+        }
+      }}
+      onTouchCancel={(e) => {
+        if (e.touches.length === 0 && isDrawing.current) {
+          finishDraw();
+        }
       }}
     >
       <div style={{ width: '10000px', height: '10000px', position: 'relative' }}>
